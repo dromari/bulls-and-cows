@@ -202,29 +202,23 @@ button:active:not(:disabled) {
 
 /* Validation message */
 .error-message {
-  min-height: 0;
-  margin: 0 auto 20px;
+  visibility: hidden;
+  height: 20px;
+  min-height: 20px;
+  margin: 4px auto 20px;
   padding: 0 12px;
   max-width: 420px;
   text-align: center;
   font-size: 0.85rem;
   font-weight: 500;
+  line-height: 20px;
   color: var(--danger);
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity 200ms ease,
-    transform 200ms ease,
-    min-height 200ms ease,
-    margin 200ms ease;
+  transition: visibility 150ms ease;
   pointer-events: none;
 }
 
 .error-message.visible {
-  min-height: 1.2em;
-  margin-top: 8px;
-  opacity: 1;
-  transform: translateY(0);
+  visibility: visible;
 }
 
 /* Guess slots */

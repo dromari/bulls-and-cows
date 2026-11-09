@@ -28,6 +28,34 @@ export function renderGame(state, onSubmit, onNewGame) {
             slot.classList.toggle('filled', index < value.length);
         });
     }
+    // 1. Создаем контейнер ошибки с фиксированным местом, чтобы вёрстка не прыгала
+    const errorMessage = createElement('div', {
+        className: 'error-message',
+        textContent: '',
+    });
+    errorMessage.style.minHeight = '20px';
+    errorMessage.style.marginTop = '4px';
+    errorMessage.style.color = 'red';
+    errorMessage.style.visibility = 'hidden'; // Управляем через visibility вместо display, чтобы не было сдвигов
+    function setError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.visibility = 'visible';
+    }
+    function clearError() {
+        errorMessage.textContent = '';
+        errorMessage.style.visibility = 'hidden';
+    }
+    function validateInput(value) {
+        const hasInvalidChar = value.split('').some((char) => !isValidDigit(char));
+        if (hasInvalidChar) {
+            return 'Недопустимый символ для этой системы счисления';
+        }
+        const hasDuplicate = new Set(value.toLowerCase()).size !== value.length;
+        if (hasDuplicate) {
+            return 'Цифры в попытке не должны повторяться';
+        }
+        return null;
+    }
     function keepUniqueChars(value) {
         const seen = new Set();
         return value
@@ -41,57 +69,46 @@ export function renderGame(state, onSubmit, onNewGame) {
         })
             .join('');
     }
-    const errorMessage = createElement('div', {
-        className: 'error-message',
-        textContent: '',
-    });
-    function setError(message) {
-        errorMessage.textContent = message;
-        errorMessage.classList.add('visible');
-    }
-    function clearError() {
-        errorMessage.textContent = '';
-        errorMessage.classList.remove('visible');
-    }
-    function validateInput(value) {
-        const hasInvalidChar = value.split('').some((char) => !isValidDigit(char));
-        if (hasInvalidChar) {
-            return 'Недопустимый символ для этой системы счисления';
-        }
-        const hasDuplicate = new Set(value.toLowerCase()).size !== value.length;
-        if (hasDuplicate) {
-            return 'Цифры в попытке не должны повторяться';
-        }
-        return null;
-    }
-    input.addEventListener('input', () => {
-        const error = validateInput(input.value);
+    function validateAndUpdateUI(rawValue) {
+        // 1. Сначала проверяем на ошибки "сырое" значение (включая только что нажатый дубликат/символ)
+        const error = validateInput(rawValue);
         if (error) {
             setError(error);
         }
         else {
             clearError();
         }
-        const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
-        const unique = keepUniqueChars(normalized);
+        // 2. А вот в сам инпут и слоты записываем ТОЛЬКО чистые данные,
+        // отсекая недопустимые символы и дубликаты, чтобы они физически не вводились
+        const normalized = rawValue.split('').filter(isValidDigit).join('').toLowerCase();
+        const unique = keepUniqueChars(normalized).slice(0, length);
         input.value = unique;
         updateSlots(unique);
+    }
+    input.addEventListener('input', () => {
+        validateAndUpdateUI(input.value);
     });
     function appendChar(char) {
-        if (input.value.length < length && !isWon && !input.value.includes(char)) {
-            input.value += char;
-            updateSlots(input.value);
-            input.focus();
+        if (isWon) {
+            return;
         }
+        // Приводим к нижнему регистру, так как вся логика ядра и валидатора ожидает строчные символы
+        const lowerChar = char.toLowerCase();
+        // Берем текущее значение, добавляем новый символ и передаем в валидатор
+        const newValue = input.value + lowerChar;
+        // Принудительно вызываем обновление UI с новым значением
+        validateAndUpdateUI(newValue);
+        // Возвращаем фокус на инпут
+        input.focus();
     }
     function clearGuess() {
-        input.value = '';
-        updateSlots('');
+        validateAndUpdateUI('');
         input.focus();
     }
     function submitGuess() {
-        const guess = input.value;
+        const guess = input.value.toLowerCase(); // Гарантируем нижний регистр для ядра
         if (isValidGuess(guess, length, state.settings.base)) {
+            validateAndUpdateUI('');
             onSubmit(guess);
         }
     }
