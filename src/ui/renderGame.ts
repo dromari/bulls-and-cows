@@ -41,33 +41,24 @@ export function renderGame(
     });
   }
 
-  function keepUniqueChars(value: string): string {
-    const seen = new Set<string>();
-    return value
-      .split('')
-      .filter((char) => {
-        if (seen.has(char)) {
-          return false;
-        }
-        seen.add(char);
-        return true;
-      })
-      .join('');
-  }
-
+  // 1. Создаем контейнер ошибки с фиксированным местом, чтобы вёрстка не прыгала
   const errorMessage = createElement('div', {
     className: 'error-message',
     textContent: '',
   });
+  errorMessage.style.minHeight = '20px';
+  errorMessage.style.marginTop = '4px';
+  errorMessage.style.color = 'red';
+  errorMessage.style.visibility = 'hidden'; // Управляем через visibility вместо display, чтобы не было сдвигов
 
   function setError(message: string): void {
     errorMessage.textContent = message;
-    errorMessage.classList.add('visible');
+    errorMessage.style.visibility = 'visible';
   }
 
   function clearError(): void {
     errorMessage.textContent = '';
-    errorMessage.classList.remove('visible');
+    errorMessage.style.visibility = 'hidden';
   }
 
   function validateInput(value: string): string | null {
@@ -84,38 +75,70 @@ export function renderGame(
     return null;
   }
 
-  input.addEventListener('input', () => {
-    const error = validateInput(input.value);
+  function keepUniqueChars(value: string): string {
+    const seen = new Set<string>();
+    return value
+      .split('')
+      .filter((char) => {
+        if (seen.has(char)) {
+          return false;
+        }
+        seen.add(char);
+        return true;
+      })
+      .join('');
+  }
+
+  function validateAndUpdateUI(rawValue: string): void {
+    // 1. Сначала проверяем на ошибки "сырое" значение (включая только что нажатый дубликат/символ)
+    const error = validateInput(rawValue);
     if (error) {
       setError(error);
     } else {
       clearError();
     }
 
-    const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
-    const unique = keepUniqueChars(normalized);
+    // 2. А вот в сам инпут и слоты записываем ТОЛЬКО чистые данные,
+    // отсекая недопустимые символы и дубликаты, чтобы они физически не вводились
+    const normalized = rawValue.split('').filter(isValidDigit).join('').toLowerCase();
+    const unique = keepUniqueChars(normalized).slice(0, length);
+
     input.value = unique;
     updateSlots(unique);
+  }
+
+  input.addEventListener('input', () => {
+    validateAndUpdateUI(input.value);
   });
 
   function appendChar(char: string): void {
-    if (input.value.length < length && !isWon && !input.value.includes(char)) {
-      input.value += char;
-      updateSlots(input.value);
-      input.focus();
+    if (isWon) {
+      return;
     }
+
+    // Приводим к нижнему регистру, так как вся логика ядра и валидатора ожидает строчные символы
+    const lowerChar = char.toLowerCase();
+
+    // Берем текущее значение, добавляем новый символ и передаем в валидатор
+    const newValue = input.value + lowerChar;
+
+    // Принудительно вызываем обновление UI с новым значением
+    validateAndUpdateUI(newValue);
+
+    // Возвращаем фокус на инпут
+    input.focus();
   }
 
   function clearGuess(): void {
-    input.value = '';
-    updateSlots('');
+    validateAndUpdateUI('');
     input.focus();
   }
 
   function submitGuess(): void {
-    const guess = input.value;
+    const guess = input.value.toLowerCase(); // Гарантируем нижний регистр для ядра
 
     if (isValidGuess(guess, length, state.settings.base)) {
+      validateAndUpdateUI('');
       onSubmit(guess);
     }
   }
