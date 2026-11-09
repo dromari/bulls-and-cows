@@ -41,14 +41,29 @@ export function renderGame(
     });
   }
 
+  function keepUniqueChars(value: string): string {
+    const seen = new Set<string>();
+    return value
+      .split('')
+      .filter((char) => {
+        if (seen.has(char)) {
+          return false;
+        }
+        seen.add(char);
+        return true;
+      })
+      .join('');
+  }
+
   input.addEventListener('input', () => {
     const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
-    input.value = normalized;
-    updateSlots(normalized);
+    const unique = keepUniqueChars(normalized);
+    input.value = unique;
+    updateSlots(unique);
   });
 
   function appendChar(char: string): void {
-    if (input.value.length < length && !isWon) {
+    if (input.value.length < length && !isWon && !input.value.includes(char)) {
       input.value += char;
       updateSlots(input.value);
       input.focus();
