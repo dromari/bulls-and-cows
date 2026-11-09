@@ -200,6 +200,33 @@ button:active:not(:disabled) {
   height: 1px;
 }
 
+/* Validation message */
+.error-message {
+  min-height: 0;
+  margin: 0 auto 20px;
+  padding: 0 12px;
+  max-width: 420px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--danger);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    min-height 200ms ease,
+    margin 200ms ease;
+  pointer-events: none;
+}
+
+.error-message.visible {
+  min-height: 1.2em;
+  margin-top: 8px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Guess slots */
 .guess-slots {
   display: flex;
