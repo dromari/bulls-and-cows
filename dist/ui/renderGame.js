@@ -41,7 +41,37 @@ export function renderGame(state, onSubmit, onNewGame) {
         })
             .join('');
     }
+    const errorMessage = createElement('div', {
+        className: 'error-message',
+        textContent: '',
+    });
+    function setError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('visible');
+    }
+    function clearError() {
+        errorMessage.textContent = '';
+        errorMessage.classList.remove('visible');
+    }
+    function validateInput(value) {
+        const hasInvalidChar = value.split('').some((char) => !isValidDigit(char));
+        if (hasInvalidChar) {
+            return 'Недопустимый символ для этой системы счисления';
+        }
+        const hasDuplicate = new Set(value.toLowerCase()).size !== value.length;
+        if (hasDuplicate) {
+            return 'Цифры в попытке не должны повторяться';
+        }
+        return null;
+    }
     input.addEventListener('input', () => {
+        const error = validateInput(input.value);
+        if (error) {
+            setError(error);
+        }
+        else {
+            clearError();
+        }
         const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
         const unique = keepUniqueChars(normalized);
         input.value = unique;
@@ -144,6 +174,7 @@ export function renderGame(state, onSubmit, onNewGame) {
         createElement('p', { className: 'game-timer-row' }, ['Time: ', timerDisplay]),
         slotsContainer,
         input,
+        errorMessage,
         keyboard,
         historyList,
         newGameButton,
