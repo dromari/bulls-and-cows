@@ -1,6 +1,6 @@
-import { evaluateGuess } from './evaluateGuess';
-import { generateSecret } from './generateSecret';
-import { isValidGuess } from './isValidGuess';
+import { evaluateGuess } from './evaluateGuess.js';
+import { generateSecret } from './generateSecret.js';
+import { isValidGuess } from './isValidGuess.js';
 
 export type GameSettings = {
   length: number;

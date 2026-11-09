@@ -1,9 +1,9 @@
-import { createDigitValidator } from '../core/createDigitValidator';
-import { isValidGuess } from '../core/isValidGuess';
-import type { GameState } from '../core/gameState';
-import type { LeaderboardRecord } from '../storage/records';
-import { getTopRecords } from '../storage/records';
-import { createElement } from './createElement';
+import { createDigitValidator } from '../core/createDigitValidator.js';
+import { isValidGuess } from '../core/isValidGuess.js';
+import type { GameState } from '../core/gameState.js';
+import type { LeaderboardRecord } from '../storage/records.js';
+import { getTopRecords } from '../storage/records.js';
+import { createElement } from './createElement.js';
 
 export function renderGame(
   state: GameState,
@@ -18,7 +18,8 @@ export function renderGame(
     type: 'text',
     id: 'guess-input',
     maxLength: String(state.settings.length),
-    disabled: isWon,
+    disabled: isWon ? true : undefined,
+    autofocus: true,
   }) as HTMLInputElement;
 
   input.addEventListener('input', () => {
@@ -27,7 +28,7 @@ export function renderGame(
 
   const submitButton = createElement('button', {
     textContent: 'Submit',
-    disabled: isWon,
+    disabled: isWon ? true : undefined,
     onClick: () => {
       const guess = input.value;
 
@@ -69,6 +70,7 @@ export function renderGame(
     const duration = Math.max(0, Date.now() - state.startTime);
     children.push(
       createElement('p', {
+        className: 'win-message',
         textContent: `You won in ${state.history.length} attempts and ${duration} ms!`,
       })
     );
@@ -100,5 +102,13 @@ export function renderGame(
 
   children.push(createElement('h3', { textContent: 'Leaderboard' }), recordsTable);
 
-  return createElement('div', { className: 'game-screen' }, children);
+  const gameScreen = createElement('div', { className: 'game-screen' }, children);
+
+  if (!isWon) {
+    setTimeout(() => {
+      input.focus();
+    }, 0);
+  }
+
+  return gameScreen;
 }

@@ -1,6 +1,6 @@
-import { createGameState, getAttemptCount, makeGuess, startGame } from './core/gameState';
-import { addRecord, loadRecords, saveRecords, type LeaderboardRecord } from './storage/records';
-import { renderApp, type Handlers } from './ui/renderApp';
+import { createGameState, getAttemptCount, makeGuess, startGame } from './core/gameState.js';
+import { addRecord, loadRecords, saveRecords, type LeaderboardRecord } from './storage/records.js';
+import { renderApp, type Handlers } from './ui/renderApp.js';
 
 let state = createGameState({ length: 4, base: 10 });
 let records: LeaderboardRecord[] = loadRecords();

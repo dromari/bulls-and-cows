@@ -1,7 +1,7 @@
-import type { GameState } from '../core/gameState';
-import type { LeaderboardRecord } from '../storage/records';
-import { renderGame } from './renderGame';
-import { renderSettings } from './renderSettings';
+import type { GameState } from '../core/gameState.js';
+import type { LeaderboardRecord } from '../storage/records.js';
+import { renderGame } from './renderGame.js';
+import { renderSettings } from './renderSettings.js';
 
 export type Handlers = {
   onStart: (settings: { length: number; base: number }) => void;
@@ -22,6 +22,14 @@ export function renderApp(
   if (state.status === 'idle') {
     root.appendChild(renderSettings(state.settings, records, handlers.onStart));
   } else {
-    root.appendChild(renderGame(state, records, handlers.onSubmit, handlers.onNewGame));
+    const gameScreen = renderGame(state, records, handlers.onSubmit, handlers.onNewGame);
+    root.appendChild(gameScreen);
+
+    if (state.status === 'playing') {
+      const input = gameScreen.querySelector<HTMLInputElement>('#guess-input');
+      if (input) {
+        setTimeout(() => input.focus(), 0);
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
-import { countPossibleSecrets } from '../core/countPossibleSecrets';
-import type { LeaderboardRecord } from '../storage/records';
-import { getAllTopRecords } from '../storage/records';
-import { createElement } from './createElement';
+import { countPossibleSecrets } from '../core/countPossibleSecrets.js';
+import type { LeaderboardRecord } from '../storage/records.js';
+import { getAllTopRecords } from '../storage/records.js';
+import { createElement } from './createElement.js';
 
 const BASE_OPTIONS = [
   { value: 2, label: 'Binary' },
