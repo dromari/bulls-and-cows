@@ -3,3 +3,4 @@ dist/
 .vitest/
 .kimi-code/
 TODO.md
+agent.md
