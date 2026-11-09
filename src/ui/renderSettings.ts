@@ -1,4 +1,6 @@
 import { countPossibleSecrets } from '../core/countPossibleSecrets';
+import type { LeaderboardRecord } from '../storage/records';
+import { getAllTopRecords } from '../storage/records';
 import { createElement } from './createElement';
 
 const BASE_OPTIONS = [
@@ -10,6 +12,7 @@ const BASE_OPTIONS = [
 
 export function renderSettings(
   initialSettings: { length: number; base: number },
+  records: LeaderboardRecord[],
   onStart: (settings: { length: number; base: number }) => void
 ): HTMLElement {
   let length = initialSettings.length;
@@ -88,6 +91,34 @@ export function renderSettings(
 
   renderLengthOptions();
 
+  const topRecords = getAllTopRecords(records, 10);
+
+  const recordsTable =
+    topRecords.length > 0
+      ? createElement('table', { className: 'leaderboard' }, [
+          createElement('thead', {}, [
+            createElement('tr', {}, [
+              createElement('th', { textContent: 'Length' }),
+              createElement('th', { textContent: 'Base' }),
+              createElement('th', { textContent: 'Attempts' }),
+              createElement('th', { textContent: 'Time (ms)' }),
+            ]),
+          ]),
+          createElement(
+            'tbody',
+            {},
+            topRecords.map((record) =>
+              createElement('tr', {}, [
+                createElement('td', { textContent: String(record.length) }),
+                createElement('td', { textContent: String(record.base) }),
+                createElement('td', { textContent: String(record.attempts) }),
+                createElement('td', { textContent: String(record.time) }),
+              ])
+            )
+          ),
+        ])
+      : createElement('p', { textContent: 'No records yet.' });
+
   return createElement('div', { className: 'settings-screen' }, [
     createElement('h1', { textContent: 'Bulls and Cows' }),
     createElement('label', { textContent: 'Length:', htmlFor: 'length-select' }),
@@ -96,5 +127,7 @@ export function renderSettings(
     baseSelect,
     createElement('p', {}, ['Possible secrets: ', possibleCount]),
     startButton,
+    createElement('h2', { textContent: 'Leaderboard' }),
+    recordsTable,
   ]);
 }
