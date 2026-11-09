@@ -1,106 +1,176 @@
 import { createDigitValidator } from '../core/createDigitValidator.js';
 import { isValidGuess } from '../core/isValidGuess.js';
 import type { GameState } from '../core/gameState.js';
-import type { LeaderboardRecord } from '../storage/records.js';
-import { getTopRecords } from '../storage/records.js';
+import { formatDuration } from '../storage/records.js';
 import { createElement } from './createElement.js';
 
 export function renderGame(
   state: GameState,
-  records: LeaderboardRecord[],
   onSubmit: (guess: string) => void,
   onNewGame: () => void
 ): HTMLElement {
   const isValidDigit = createDigitValidator(state.settings.base);
   const isWon = state.status === 'won';
+  const { length } = state.settings;
 
   const input = createElement('input', {
     type: 'text',
     id: 'guess-input',
-    maxLength: String(state.settings.length),
+    className: 'hidden-input',
+    maxLength: String(length),
     disabled: isWon ? true : undefined,
     autofocus: true,
   }) as HTMLInputElement;
 
+  const slots: HTMLElement[] = Array.from({ length }, () =>
+    createElement('div', {
+      className: 'slot',
+      textContent: '',
+      onClick: () => {
+        input.focus();
+      },
+    })
+  );
+
+  const slotsContainer = createElement('div', { className: 'guess-slots' }, slots);
+
+  function updateSlots(value: string): void {
+    slots.forEach((slot, index) => {
+      slot.textContent = value[index] ?? '';
+      slot.classList.toggle('filled', index < value.length);
+    });
+  }
+
   input.addEventListener('input', () => {
-    input.value = input.value.split('').filter(isValidDigit).join('').toLowerCase();
+    const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
+    input.value = normalized;
+    updateSlots(normalized);
+  });
+
+  function appendChar(char: string): void {
+    if (input.value.length < length && !isWon) {
+      input.value += char;
+      updateSlots(input.value);
+      input.focus();
+    }
+  }
+
+  function clearGuess(): void {
+    input.value = '';
+    updateSlots('');
+    input.focus();
+  }
+
+  function submitGuess(): void {
+    const guess = input.value;
+
+    if (isValidGuess(guess, length, state.settings.base)) {
+      onSubmit(guess);
+    }
+  }
+
+  const digits = '0123456789abcdef'.slice(0, state.settings.base).split('');
+
+  const keyButtons = digits.map((char) =>
+    createElement('button', {
+      type: 'button',
+      className: 'key',
+      textContent: char.toUpperCase(),
+      disabled: isWon ? true : undefined,
+      onClick: (event: Event) => {
+        event.preventDefault();
+        appendChar(char);
+      },
+    })
+  );
+
+  const clearButton = createElement('button', {
+    type: 'button',
+    className: 'key key-clear',
+    textContent: 'Clear',
+    disabled: isWon ? true : undefined,
+    onClick: (event: Event) => {
+      event.preventDefault();
+      clearGuess();
+    },
   });
 
   const submitButton = createElement('button', {
+    type: 'button',
+    className: 'key key-submit',
     textContent: 'Submit',
     disabled: isWon ? true : undefined,
-    onClick: () => {
-      const guess = input.value;
-
-      if (isValidGuess(guess, state.settings.length, state.settings.base)) {
-        onSubmit(guess);
-      }
+    onClick: (event: Event) => {
+      event.preventDefault();
+      submitGuess();
     },
   });
+
+  const digitsRow = createElement('div', { className: 'keyboard-row digits-row' }, [
+    ...keyButtons,
+    clearButton,
+  ]);
+
+  const submitRow = createElement('div', { className: 'keyboard-row submit-row' }, [submitButton]);
+
+  const keyboard = createElement('div', { className: 'keyboard' }, [digitsRow, submitRow]);
 
   const historyList = createElement(
     'ul',
     { className: 'history-list' },
-    state.history.map((entry) =>
-      createElement('li', {
-        textContent: `${entry.guess}: ${entry.bulls} bulls, ${entry.cows} cows`,
-      })
-    )
+    state.history.map((entry) => {
+      const guessText = createElement('span', {
+        className: 'history-guess',
+        textContent: entry.guess.toUpperCase(),
+      });
+
+      const bullsBadge = createElement('span', {
+        className: 'badge badge-bulls',
+        title: 'Быки: число отгаданных цифр, стоящих на своих местах',
+        textContent: `${entry.bulls} 🐂`,
+      });
+
+      const cowsBadge = createElement('span', {
+        className: 'badge badge-cows',
+        title: 'Коровы: число отгаданных цифр, стоящих не на своих местах',
+        textContent: `${entry.cows} 🐄`,
+      });
+
+      return createElement('li', {}, [guessText, bullsBadge, cowsBadge]);
+    })
   );
 
   const newGameButton = createElement('button', {
+    type: 'button',
+    className: 'new-game-button',
     textContent: 'New Game',
-    onClick: onNewGame,
+    onClick: (event: Event) => {
+      event.preventDefault();
+      onNewGame();
+    },
+  });
+
+  const timerDisplay = createElement('span', {
+    className: 'game-timer',
+    textContent: formatDuration(0),
   });
 
   const children: Array<HTMLElement | string> = [
     createElement('h2', {
-      textContent: `Guess the ${state.settings.length}-digit secret`,
+      className: 'game-title',
+      textContent: `Guess the ${length}-digit secret`,
     }),
     createElement('p', {
-      textContent: `Numeral system: ${state.settings.base}`,
+      className: 'game-subtitle',
+      textContent: `Base: ${state.settings.base}`,
     }),
+    createElement('p', { className: 'game-timer-row' }, ['Time: ', timerDisplay]),
+    slotsContainer,
     input,
-    submitButton,
+    keyboard,
     historyList,
     newGameButton,
   ];
-
-  if (isWon) {
-    const duration = Math.max(0, Date.now() - state.startTime);
-    children.push(
-      createElement('p', {
-        className: 'win-message',
-        textContent: `You won in ${state.history.length} attempts and ${duration} ms!`,
-      })
-    );
-  }
-
-  const topRecords = getTopRecords(records, 10, state.settings.length, state.settings.base);
-
-  const recordsTable =
-    topRecords.length > 0
-      ? createElement('table', { className: 'leaderboard' }, [
-          createElement('thead', {}, [
-            createElement('tr', {}, [
-              createElement('th', { textContent: 'Attempts' }),
-              createElement('th', { textContent: 'Time (ms)' }),
-            ]),
-          ]),
-          createElement(
-            'tbody',
-            {},
-            topRecords.map((record) =>
-              createElement('tr', {}, [
-                createElement('td', { textContent: String(record.attempts) }),
-                createElement('td', { textContent: String(record.time) }),
-              ])
-            )
-          ),
-        ])
-      : createElement('p', { textContent: 'No records for these settings yet.' });
-
-  children.push(createElement('h3', { textContent: 'Leaderboard' }), recordsTable);
 
   const gameScreen = createElement('div', { className: 'game-screen' }, children);
 
@@ -108,7 +178,45 @@ export function renderGame(
     setTimeout(() => {
       input.focus();
     }, 0);
+
+    const timerInterval = window.setInterval(() => {
+      const elapsed = Math.max(0, Date.now() - state.startTime);
+      timerDisplay.textContent = formatDuration(elapsed);
+    }, 1000);
+
+    (gameScreen as HTMLElement & { __timer?: number }).__timer = timerInterval;
+  }
+
+  if (isWon) {
+    const duration = Math.max(0, Date.now() - state.startTime);
+    const modal = createWinModal(state.history.length, duration, onNewGame);
+    gameScreen.appendChild(modal);
   }
 
   return gameScreen;
+}
+
+function createWinModal(attempts: number, duration: number, onNewGame: () => void): HTMLElement {
+  const modalCard = createElement('div', { className: 'modal' }, [
+    createElement('h2', { className: 'modal-title', textContent: '🎉 Congratulations!' }),
+    createElement('p', {
+      className: 'modal-text',
+      textContent: `You guessed the secret in ${attempts} attempts.`,
+    }),
+    createElement('p', {
+      className: 'modal-text',
+      textContent: `Time: ${formatDuration(duration)}`,
+    }),
+    createElement('button', {
+      type: 'button',
+      className: 'modal-button',
+      textContent: 'New Game',
+      onClick: (event: Event) => {
+        event.preventDefault();
+        onNewGame();
+      },
+    }),
+  ]);
+
+  return createElement('div', { className: 'modal-overlay' }, [modalCard]);
 }

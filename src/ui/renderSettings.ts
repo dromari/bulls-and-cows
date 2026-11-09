@@ -1,6 +1,6 @@
 import { countPossibleSecrets } from '../core/countPossibleSecrets.js';
 import type { LeaderboardRecord } from '../storage/records.js';
-import { getAllTopRecords } from '../storage/records.js';
+import { formatDuration, getAllTopRecords } from '../storage/records.js';
 import { createElement } from './createElement.js';
 
 const BASE_OPTIONS = [
@@ -83,14 +83,42 @@ export function renderSettings(
   });
 
   const startButton = createElement('button', {
+    type: 'button',
+    className: 'start-button',
     textContent: 'Start',
-    onClick: () => {
+    onClick: (event: Event) => {
+      event.preventDefault();
       onStart({ length, base });
+    },
+  });
+
+  const viewLeaderboardButton = createElement('button', {
+    type: 'button',
+    className: 'view-leaderboard-button',
+    textContent: 'View Leaderboard',
+    onClick: (event: Event) => {
+      event.preventDefault();
+      settingsScreen.appendChild(createLeaderboardModal(records));
     },
   });
 
   renderLengthOptions();
 
+  const settingsScreen = createElement('div', { className: 'settings-screen' }, [
+    createElement('h1', { textContent: 'Bulls and Cows' }),
+    createElement('label', { textContent: 'Length:', htmlFor: 'length-select' }),
+    lengthSelect,
+    createElement('label', { textContent: 'Numeral system:', htmlFor: 'base-select' }),
+    baseSelect,
+    createElement('p', {}, ['Possible secrets: ', possibleCount]),
+    startButton,
+    viewLeaderboardButton,
+  ]);
+
+  return settingsScreen;
+}
+
+function createLeaderboardModal(records: LeaderboardRecord[]): HTMLElement {
   const topRecords = getAllTopRecords(records, 10);
 
   const recordsTable =
@@ -101,7 +129,7 @@ export function renderSettings(
               createElement('th', { textContent: 'Length' }),
               createElement('th', { textContent: 'Base' }),
               createElement('th', { textContent: 'Attempts' }),
-              createElement('th', { textContent: 'Time (ms)' }),
+              createElement('th', { textContent: 'Time' }),
             ]),
           ]),
           createElement(
@@ -112,22 +140,34 @@ export function renderSettings(
                 createElement('td', { textContent: String(record.length) }),
                 createElement('td', { textContent: String(record.base) }),
                 createElement('td', { textContent: String(record.attempts) }),
-                createElement('td', { textContent: String(record.time) }),
+                createElement('td', { textContent: formatDuration(record.time) }),
               ])
             )
           ),
         ])
       : createElement('p', { textContent: 'No records yet.' });
 
-  return createElement('div', { className: 'settings-screen' }, [
-    createElement('h1', { textContent: 'Bulls and Cows' }),
-    createElement('label', { textContent: 'Length:', htmlFor: 'length-select' }),
-    lengthSelect,
-    createElement('label', { textContent: 'Numeral system:', htmlFor: 'base-select' }),
-    baseSelect,
-    createElement('p', {}, ['Possible secrets: ', possibleCount]),
-    startButton,
-    createElement('h2', { textContent: 'Leaderboard' }),
+  const modalCard = createElement('div', { className: 'modal' }, [
+    createElement('h2', { className: 'modal-title', textContent: '🏆 Leaderboard' }),
     recordsTable,
+    createElement('button', {
+      type: 'button',
+      className: 'modal-button',
+      textContent: 'Close',
+      onClick: (event: Event) => {
+        event.preventDefault();
+        overlay.remove();
+      },
+    }),
   ]);
+
+  const overlay = createElement('div', { className: 'modal-overlay' }, [modalCard]);
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      overlay.remove();
+    }
+  });
+
+  return overlay;
 }

@@ -15,6 +15,14 @@ export function renderApp(
   records: LeaderboardRecord[],
   handlers: Handlers
 ): void {
+  const existingGameScreen = root.querySelector('.game-screen') as HTMLElement | null;
+  if (existingGameScreen) {
+    const timer = (existingGameScreen as HTMLElement & { __timer?: number }).__timer;
+    if (timer !== undefined) {
+      clearInterval(timer);
+    }
+  }
+
   while (root.firstChild) {
     root.removeChild(root.firstChild);
   }
@@ -22,7 +30,7 @@ export function renderApp(
   if (state.status === 'idle') {
     root.appendChild(renderSettings(state.settings, records, handlers.onStart));
   } else {
-    const gameScreen = renderGame(state, records, handlers.onSubmit, handlers.onNewGame);
+    const gameScreen = renderGame(state, handlers.onSubmit, handlers.onNewGame);
     root.appendChild(gameScreen);
 
     if (state.status === 'playing') {
