@@ -28,13 +28,27 @@ export function renderGame(state, onSubmit, onNewGame) {
             slot.classList.toggle('filled', index < value.length);
         });
     }
+    function keepUniqueChars(value) {
+        const seen = new Set();
+        return value
+            .split('')
+            .filter((char) => {
+            if (seen.has(char)) {
+                return false;
+            }
+            seen.add(char);
+            return true;
+        })
+            .join('');
+    }
     input.addEventListener('input', () => {
         const normalized = input.value.split('').filter(isValidDigit).join('').toLowerCase();
-        input.value = normalized;
-        updateSlots(normalized);
+        const unique = keepUniqueChars(normalized);
+        input.value = unique;
+        updateSlots(unique);
     });
     function appendChar(char) {
-        if (input.value.length < length && !isWon) {
+        if (input.value.length < length && !isWon && !input.value.includes(char)) {
             input.value += char;
             updateSlots(input.value);
             input.focus();
